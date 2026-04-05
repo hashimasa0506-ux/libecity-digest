@@ -71,6 +71,14 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     url = ROOM_URL.format(room_id=room_id)
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
+    # Reactアプリの描画を待つ
+    page.wait_for_timeout(3000)
+
+    # デバッグ用：スクリーンショットとHTMLを保存
+    page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
+    with open(f"/tmp/room_{room_id}.html", "w", encoding="utf-8") as f:
+        f.write(page.content())
+
     # メッセージが現れるまで待機（最大10秒）
     try:
         page.wait_for_selector(".message-item, [class*='message'], [class*='chat']",

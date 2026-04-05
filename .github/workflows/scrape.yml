@@ -42,7 +42,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-screenshots
-          path: /tmp/*.png
+          path: |
+            /tmp/*.png
+            /tmp/*.html
           if-no-files-found: ignore
 
       - name: Commit and push generated JSON
