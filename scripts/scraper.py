@@ -64,6 +64,16 @@ def _login(page, email: str, password: str) -> None:
     page.fill('input[placeholder="メールアドレス"]', email)
     page.fill('input[placeholder="パスワード"]', password)
     page.get_by_role("button", name="ログイン").click()
+
+    # ログイン後の状態を記録
+    page.wait_for_timeout(5000)
+    page.screenshot(path="/tmp/after_login.png", full_page=True)
+    print(f"[scraper] ログイン後URL: {page.url}")
+
+    # まだログインページにいる場合はエラー
+    if "sign_in" in page.url:
+        raise RuntimeError(f"ログイン失敗。現在のURL: {page.url}\nページ内容:\n{page.content()[:1000]}")
+
     page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=30000)
 
 
