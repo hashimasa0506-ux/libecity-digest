@@ -59,30 +59,11 @@ def _login(page, email: str, password: str) -> None:
     # デバッグ用スクリーンショット
     page.screenshot(path="/tmp/login_page.png", full_page=True)
 
-    # 複数のセレクタを試す
-    email_selectors = [
-        'input[type="email"]',
-        'input[name="email"]',
-        'input[placeholder*="メール"]',
-        'input[placeholder*="mail"]',
-        'input[autocomplete="email"]',
-    ]
-    email_input = None
-    for sel in email_selectors:
-        try:
-            page.wait_for_selector(sel, timeout=5000)
-            email_input = sel
-            break
-        except PlaywrightTimeoutError:
-            continue
-
-    if email_input is None:
-        page.screenshot(path="/tmp/login_failed.png", full_page=True)
-        raise RuntimeError(f"ログインフォームが見つかりませんでした。ページHTML:\n{page.content()[:2000]}")
-
-    page.fill(email_input, email)
-    page.fill('input[type="password"]', password)
-    page.click('button[type="submit"]')
+    # ログインフォームの入力（スクリーンショットで確認したプレースホルダーを使用）
+    page.wait_for_selector('input[placeholder="メールアドレス"]', timeout=20000)
+    page.fill('input[placeholder="メールアドレス"]', email)
+    page.fill('input[placeholder="パスワード"]', password)
+    page.get_by_role("button", name="ログイン").click()
     page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=30000)
 
 
