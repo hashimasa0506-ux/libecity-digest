@@ -96,39 +96,32 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     with open(f"/tmp/room_{room_id}.html", "w", encoding="utf-8") as f:
         f.write(page.content())
 
-    # メッセージが現れるまで待機（最大10秒）
+    # メッセージ一覧が現れるまで待機（最大15秒）
     try:
-        page.wait_for_selector(".message-item, [class*='message'], [class*='chat']",
-                               timeout=10000)
+        page.wait_for_selector("article.tweet_log", timeout=15000)
     except PlaywrightTimeoutError:
+        print(f"[scraper] 警告: article.tweet_log が見つかりません ({room_id})")
         return []
 
     cutoff = datetime.now(JST) - timedelta(hours=24)
     posts: list[Post] = []
 
-    # 候補となるメッセージ要素を収集
-    # libecity のDOM構造に合わせてセレクタを調整する
-    items = page.query_selector_all(
-        ".message-item, [class*='MessageItem'], [class*='message-row']"
-    )
+    # libecity の実際のDOM構造に基づくセレクタ
+    # article.tweet_log が1投稿に対応する
+    items = page.query_selector_all("article.tweet_log")
+    print(f"[scraper] {room_id}: {len(items)} 件の要素を検出")
 
     for item in items:
         try:
-            # 投稿者名
-            author_el = item.query_selector(
-                "[class*='username'], [class*='author'], [class*='name']"
-            )
+            # 投稿者名：.username
+            author_el = item.query_selector(".username")
             author = author_el.inner_text().strip() if author_el else "不明"
 
-            # 投稿時刻
-            time_el = item.query_selector("time, [class*='time'], [class*='date']")
-            raw_time = ""
-            if time_el:
-                raw_time = (time_el.get_attribute("datetime") or
-                            time_el.inner_text()).strip()
+            # 投稿時刻：.date_btn_box 内のテキスト
+            time_el = item.query_selector(".date_btn_box, .form_date_title")
+            raw_time = time_el.inner_text().strip() if time_el else ""
             posted_at = _parse_time(raw_time)
             if posted_at is None:
-                # datetime属性がISO形式の場合
                 try:
                     posted_at = datetime.fromisoformat(raw_time).astimezone(JST)
                 except (ValueError, TypeError):
@@ -137,10 +130,8 @@ def _scrape_room(page, room_id: str) -> list[Post]:
             if posted_at < cutoff:
                 continue
 
-            # 本文
-            body_el = item.query_selector(
-                "[class*='body'], [class*='text'], [class*='content'], p"
-            )
+            # 本文：.text_block
+            body_el = item.query_selector(".text_block, .text")
             body = body_el.inner_text().strip() if body_el else item.inner_text().strip()
 
             if body:
