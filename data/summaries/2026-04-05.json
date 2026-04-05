@@ -1,0 +1,25 @@
+{
+  "date": "2026-04-05",
+  "generated_at": "2026-04-05T07:00:00+09:00",
+  "highlight": "本日はサンプルデータです。GitHub Actionsが実行されると実際の要約に更新されます。",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "・サンプルデータです\n・GitHub Actionsが正常に動作すると実際の要約が表示されます",
+      "post_count": 0
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    }
+  ]
+}
