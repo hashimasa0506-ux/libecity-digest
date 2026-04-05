@@ -89,42 +89,32 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     url = ROOM_URL.format(room_id=room_id)
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
-    # チャットコンテナが現れるまで待機
+    # チャット投稿（article.is_all）が現れるまで最大30秒待機
     try:
-        page.wait_for_selector(".content_chatlog", timeout=20000)
+        page.wait_for_selector("article.is_all", timeout=30000)
     except PlaywrightTimeoutError:
-        print(f"[scraper] 警告: .content_chatlog が見つかりません ({room_id})")
-        page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
+        print(f"[scraper] 警告: article.is_all が見つかりません ({room_id})")
         return []
 
-    # v3-infinite-loading を起動させるためにスクロール操作
-    # チャットコンテナ内をスクロールして投稿読み込みをトリガー
+    # 追加の読み込みをトリガーするためスクロール操作
     page.evaluate("""
-        const container = document.querySelector('.content_chatlog');
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        } else {
-            window.scrollTo(0, document.body.scrollHeight);
-        }
+        // メインチャットエリアを下までスクロール
+        const containers = document.querySelectorAll(
+            '.chatLog, .chat_wrap, .room_content, .chatPage_wrap, .js_chatArea'
+        );
+        containers.forEach(c => { c.scrollTop = c.scrollHeight; });
+        window.scrollTo(0, document.body.scrollHeight);
     """)
     page.wait_for_timeout(3000)
 
-    # さらに上にスクロール（最新投稿が上の場合）
-    page.evaluate("""
-        const container = document.querySelector('.content_chatlog');
-        if (container) { container.scrollTop = 0; }
-        else { window.scrollTo(0, 0); }
-    """)
-    page.wait_for_timeout(3000)
-
-    # ローディングスピナーが消えるまで待機（最大15秒）
+    # ローディングスピナーが消えるまで待機（最大10秒）
     try:
-        page.wait_for_selector(".spinner-border", state="hidden", timeout=15000)
+        page.wait_for_selector(".spinner-border", state="hidden", timeout=10000)
     except PlaywrightTimeoutError:
         pass
 
-    # Vue.jsのレンダリング完了を待つ
-    page.wait_for_timeout(3000)
+    # 最終レンダリング待ち
+    page.wait_for_timeout(2000)
 
     # 投稿要素を取得（article.is_all が1投稿に対応）
     items = page.query_selector_all("article.is_all")
