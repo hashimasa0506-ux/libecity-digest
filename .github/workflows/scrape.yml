@@ -37,16 +37,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/batch.py
 
-      - name: Upload debug screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: |
-            /tmp/*.png
-            /tmp/*.html
-          if-no-files-found: ignore
-
       - name: Commit and push generated JSON
         run: |
           git config user.name  "github-actions[bot]"

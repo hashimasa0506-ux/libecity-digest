@@ -62,18 +62,13 @@ def _login(page, email: str, password: str) -> None:
     # Reactアプリの描画を待つ
     page.wait_for_timeout(3000)
 
-    # デバッグ用スクリーンショット
-    page.screenshot(path="/tmp/login_page.png", full_page=True)
-
-    # ログインフォームの入力（スクリーンショットで確認したプレースホルダーを使用）
+    # ログインフォームの入力
     page.wait_for_selector('input[placeholder="メールアドレス"]', timeout=20000)
     page.fill('input[placeholder="メールアドレス"]', email)
     page.fill('input[placeholder="パスワード"]', password)
     page.get_by_role("button", name="ログイン").click()
 
-    # ログイン後の状態を記録
     page.wait_for_timeout(5000)
-    page.screenshot(path="/tmp/after_login.png", full_page=True)
     print(f"[scraper] ログイン後URL: {page.url}")
 
     # まだログインページにいる場合はエラー
@@ -130,11 +125,6 @@ def _scrape_room(page, room_id: str) -> list[Post]:
 
     # Vue.jsのレンダリング完了を待つ
     page.wait_for_timeout(3000)
-
-    # デバッグ用：スクリーンショットとHTMLを保存
-    page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
-    with open(f"/tmp/room_{room_id}.html", "w", encoding="utf-8") as f:
-        f.write(page.content())
 
     # 投稿要素を取得（article.is_all が1投稿に対応）
     items = page.query_selector_all("article.is_all")
