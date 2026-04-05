@@ -96,14 +96,34 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
         return []
 
+    # v3-infinite-loading を起動させるためにスクロール操作
+    # チャットコンテナ内をスクロールして投稿読み込みをトリガー
+    page.evaluate("""
+        const container = document.querySelector('.content_chatlog');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        } else {
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    """)
+    page.wait_for_timeout(3000)
+
+    # さらに上にスクロール（最新投稿が上の場合）
+    page.evaluate("""
+        const container = document.querySelector('.content_chatlog');
+        if (container) { container.scrollTop = 0; }
+        else { window.scrollTo(0, 0); }
+    """)
+    page.wait_for_timeout(3000)
+
     # ローディングスピナーが消えるまで待機（最大15秒）
     try:
         page.wait_for_selector(".spinner-border", state="hidden", timeout=15000)
     except PlaywrightTimeoutError:
-        pass  # タイムアウトしても続行
+        pass
 
     # Vue.jsのレンダリング完了を待つ
-    page.wait_for_timeout(5000)
+    page.wait_for_timeout(3000)
 
     # デバッグ用：スクリーンショットとHTMLを保存
     page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
@@ -111,10 +131,9 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         f.write(page.content())
 
     # メッセージ一覧の確認
-    try:
-        page.wait_for_selector("article.tweet_log", timeout=10000)
-    except PlaywrightTimeoutError:
-        print(f"[scraper] 警告: article.tweet_log が見つかりません ({room_id})")
+    items_check = page.query_selector_all("article.tweet_log")
+    print(f"[scraper] {room_id}: article.tweet_log = {len(items_check)} 件")
+    if not items_check:
         return []
 
     cutoff = datetime.now(JST) - timedelta(hours=24)
