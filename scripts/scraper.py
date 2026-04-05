@@ -88,17 +88,31 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     url = ROOM_URL.format(room_id=room_id)
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
-    # Reactアプリの描画を待つ
-    page.wait_for_timeout(3000)
+    # チャットコンテナが現れるまで待機
+    try:
+        page.wait_for_selector(".content_chatlog", timeout=20000)
+    except PlaywrightTimeoutError:
+        print(f"[scraper] 警告: .content_chatlog が見つかりません ({room_id})")
+        page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
+        return []
+
+    # ローディングスピナーが消えるまで待機（最大15秒）
+    try:
+        page.wait_for_selector(".spinner-border", state="hidden", timeout=15000)
+    except PlaywrightTimeoutError:
+        pass  # タイムアウトしても続行
+
+    # Vue.jsのレンダリング完了を待つ
+    page.wait_for_timeout(5000)
 
     # デバッグ用：スクリーンショットとHTMLを保存
     page.screenshot(path=f"/tmp/room_{room_id}.png", full_page=True)
     with open(f"/tmp/room_{room_id}.html", "w", encoding="utf-8") as f:
         f.write(page.content())
 
-    # メッセージ一覧が現れるまで待機（最大15秒）
+    # メッセージ一覧の確認
     try:
-        page.wait_for_selector("article.tweet_log", timeout=15000)
+        page.wait_for_selector("article.tweet_log", timeout=10000)
     except PlaywrightTimeoutError:
         print(f"[scraper] 警告: article.tweet_log が見つかりません ({room_id})")
         return []
