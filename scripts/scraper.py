@@ -74,7 +74,14 @@ def _login(page, email: str, password: str) -> None:
     if "sign_in" in page.url:
         raise RuntimeError(f"ログイン失敗。現在のURL: {page.url}\nページ内容:\n{page.content()[:1000]}")
 
-    page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=30000)
+    # ウェルカムモーダルを閉じる（出た場合）
+    try:
+        skip_btn = page.get_by_text("案内を見ずにリベシティを使う")
+        skip_btn.wait_for(timeout=5000)
+        skip_btn.click()
+        print("[scraper] ウェルカムモーダルを閉じました")
+    except PlaywrightTimeoutError:
+        pass  # モーダルが出ない場合はスキップ
 
 
 def _scrape_room(page, room_id: str) -> list[Post]:
