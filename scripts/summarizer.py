@@ -1,12 +1,12 @@
 """
-スクレイピング結果を Anthropic Claude API で日本語要約する。
+スクレイピング結果を Google Gemini API で日本語要約する。
 """
 
 import os
 import json
 from datetime import datetime, timedelta, timezone
 
-import anthropic
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,19 +59,18 @@ def _posts_to_text(posts: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _call_claude(client: anthropic.Anthropic, prompt: str) -> str:
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-        system=SYSTEM_PROMPT,
-    )
-    return message.content[0].text.strip()
+def _call_gemini(model: genai.GenerativeModel, prompt: str) -> str:
+    response = model.generate_content(prompt)
+    return response.text.strip()
 
 
 def summarize(scraped: dict[str, list[dict]]) -> dict:
     """スクレイピング結果を要約してJSONデータを返す。"""
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        system_instruction=SYSTEM_PROMPT,
+    )
     now = datetime.now(JST)
 
     sections = []
@@ -87,7 +86,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
         if posts:
             posts_text = _posts_to_text(posts)
             prompt = SECTION_PROMPT_TEMPLATE.format(title=title, posts_text=posts_text)
-            summary = _call_claude(client, prompt)
+            summary = _call_gemini(model, prompt)
         else:
             summary = "本日の投稿はありませんでした"
 
@@ -103,7 +102,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
     print("[summarizer] ハイライト生成中...")
     summaries_text = "\n\n".join(summaries_for_highlight)
     highlight_prompt = HIGHLIGHT_PROMPT_TEMPLATE.format(summaries_text=summaries_text)
-    highlight = _call_claude(client, highlight_prompt)
+    highlight = _call_gemini(model, highlight_prompt)
 
     return {
         "date":         now.strftime("%Y-%m-%d"),
