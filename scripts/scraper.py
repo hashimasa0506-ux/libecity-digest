@@ -52,8 +52,35 @@ def _parse_time(raw: str) -> datetime | None:
 
 def _login(page, email: str, password: str) -> None:
     page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_selector('input[type="email"]', timeout=20000)
-    page.fill('input[type="email"]', email)
+
+    # Reactアプリの描画を待つ
+    page.wait_for_timeout(3000)
+
+    # デバッグ用スクリーンショット
+    page.screenshot(path="/tmp/login_page.png", full_page=True)
+
+    # 複数のセレクタを試す
+    email_selectors = [
+        'input[type="email"]',
+        'input[name="email"]',
+        'input[placeholder*="メール"]',
+        'input[placeholder*="mail"]',
+        'input[autocomplete="email"]',
+    ]
+    email_input = None
+    for sel in email_selectors:
+        try:
+            page.wait_for_selector(sel, timeout=5000)
+            email_input = sel
+            break
+        except PlaywrightTimeoutError:
+            continue
+
+    if email_input is None:
+        page.screenshot(path="/tmp/login_failed.png", full_page=True)
+        raise RuntimeError(f"ログインフォームが見つかりませんでした。ページHTML:\n{page.content()[:2000]}")
+
+    page.fill(email_input, email)
     page.fill('input[type="password"]', password)
     page.click('button[type="submit"]')
     page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=30000)
