@@ -51,16 +51,17 @@ def _parse_time(raw: str) -> datetime | None:
 
 
 def _login(page, email: str, password: str) -> None:
-    page.goto(LOGIN_URL, wait_until="networkidle")
+    page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=60000)
+    page.wait_for_selector('input[type="email"]', timeout=20000)
     page.fill('input[type="email"]', email)
     page.fill('input[type="password"]', password)
     page.click('button[type="submit"]')
-    page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=15000)
+    page.wait_for_url(re.compile(r"libecity\.com/(?!sign_in)"), timeout=30000)
 
 
 def _scrape_room(page, room_id: str) -> list[Post]:
     url = ROOM_URL.format(room_id=room_id)
-    page.goto(url, wait_until="networkidle")
+    page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
     # メッセージが現れるまで待機（最大10秒）
     try:
