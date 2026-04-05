@@ -36,6 +36,12 @@ def _parse_time(raw: str) -> datetime | None:
     """チャット欄に表示される時刻文字列をdatetimeに変換する。"""
     raw = raw.strip()
     now = datetime.now(JST)
+    # "YYYY/MM/DD HH:MM" 形式（libecityの標準形式）
+    m = re.search(r"(\d{4})/(\d{2})/(\d{2})\s+(\d{1,2}):(\d{2})", raw)
+    if m:
+        return now.replace(year=int(m.group(1)), month=int(m.group(2)),
+                           day=int(m.group(3)), hour=int(m.group(4)),
+                           minute=int(m.group(5)), second=0, microsecond=0)
     # "HH:MM" 形式（当日）
     m = re.match(r"^(\d{1,2}):(\d{2})$", raw)
     if m:
@@ -130,42 +136,34 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     with open(f"/tmp/room_{room_id}.html", "w", encoding="utf-8") as f:
         f.write(page.content())
 
-    # メッセージ一覧の確認
-    items_check = page.query_selector_all("article.tweet_log")
-    print(f"[scraper] {room_id}: article.tweet_log = {len(items_check)} 件")
-    if not items_check:
+    # 投稿要素を取得（article.is_all が1投稿に対応）
+    items = page.query_selector_all("article.is_all")
+    print(f"[scraper] {room_id}: {len(items)} 件の要素を検出")
+    if not items:
         return []
 
     cutoff = datetime.now(JST) - timedelta(hours=24)
     posts: list[Post] = []
 
-    # libecity の実際のDOM構造に基づくセレクタ
-    # article.tweet_log が1投稿に対応する
-    items = page.query_selector_all("article.tweet_log")
-    print(f"[scraper] {room_id}: {len(items)} 件の要素を検出")
-
     for item in items:
         try:
-            # 投稿者名：.username
-            author_el = item.query_selector(".username")
+            # 投稿者名：.post_user
+            author_el = item.query_selector(".post_user")
             author = author_el.inner_text().strip() if author_el else "不明"
 
-            # 投稿時刻：.date_btn_box 内のテキスト
-            time_el = item.query_selector(".date_btn_box, .form_date_title")
-            raw_time = time_el.inner_text().strip() if time_el else ""
+            # 投稿時刻：.post_info 内の "YYYY/MM/DD HH:MM" 形式
+            info_el = item.query_selector(".post_info")
+            raw_time = info_el.inner_text().strip() if info_el else ""
             posted_at = _parse_time(raw_time)
             if posted_at is None:
-                try:
-                    posted_at = datetime.fromisoformat(raw_time).astimezone(JST)
-                except (ValueError, TypeError):
-                    posted_at = datetime.now(JST)
+                posted_at = datetime.now(JST)
 
             if posted_at < cutoff:
                 continue
 
-            # 本文：.text_block
-            body_el = item.query_selector(".text_block, .text")
-            body = body_el.inner_text().strip() if body_el else item.inner_text().strip()
+            # 本文：.post_text
+            body_el = item.query_selector(".post_text")
+            body = body_el.inner_text().strip() if body_el else ""
 
             if body:
                 posts.append(Post(
