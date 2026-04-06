@@ -4,10 +4,12 @@
 
 import os
 import json
+import time
 from datetime import datetime, timedelta, timezone
 
 from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -60,20 +62,33 @@ def _posts_to_text(posts: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _call_gemini(client: genai.Client, prompt: str) -> str:
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-        ),
-    )
-    return response.text.strip()
+MODEL = "gemini-1.5-flash"   # 無料枠 1500 RPD（gemini-2.5-flash は 20 RPD）
+
+
+def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str:
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                ),
+            )
+            return response.text.strip()
+        except genai_errors.ClientError as e:
+            if e.status_code == 429 and attempt < max_retries - 1:
+                wait = 60 * (attempt + 1)
+                print(f"[summarizer] 429レート制限、{wait}秒待機してリトライ ({attempt + 1}/{max_retries})")
+                time.sleep(wait)
+            else:
+                raise
 
 
 def summarize(scraped: dict[str, list[dict]]) -> dict:
     """スクレイピング結果を要約してJSONデータを返す。"""
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    print(f"[summarizer] モデル: {MODEL}")
     now = datetime.now(JST)
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
