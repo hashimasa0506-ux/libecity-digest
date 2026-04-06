@@ -142,6 +142,10 @@ def _scrape_room(page, room_id: str) -> list[Post]:
             info_el = item.query_selector(".post_info")
             raw_time = info_el.inner_text().strip() if info_el else ""
             posted_at = _parse_time(raw_time)
+
+            # デバッグ：各投稿の日時を出力
+            print(f"[scraper]   raw_time={repr(raw_time[:40])} → posted_at={posted_at}")
+
             if posted_at is None:
                 continue  # 日時不明の投稿はスキップ
 
@@ -158,7 +162,8 @@ def _scrape_room(page, room_id: str) -> list[Post]:
                     posted_at=posted_at.isoformat(),
                     body=body,
                 ))
-        except Exception:
+        except Exception as e:
+            print(f"[scraper]   エラー: {e}")
             continue
 
     return posts
