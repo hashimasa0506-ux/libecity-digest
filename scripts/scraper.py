@@ -89,11 +89,12 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     url = ROOM_URL.format(room_id=room_id)
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
 
-    # チャット投稿（article.is_all）が現れるまで最大30秒待機
+    # チャット投稿が現れるまで最大30秒待機
+    # article.is_all は @ALL メンション付き投稿のみ。通常投稿も含む article:has(.post_info) を使う
     try:
-        page.wait_for_selector("article.is_all", timeout=30000)
+        page.wait_for_selector("article:has(.post_info)", timeout=30000)
     except PlaywrightTimeoutError:
-        print(f"[scraper] 警告: article.is_all が見つかりません ({room_id})")
+        print(f"[scraper] 警告: 投稿が見つかりません ({room_id})")
         return []
 
     now = datetime.now(JST)
@@ -107,7 +108,7 @@ def _scrape_room(page, room_id: str) -> list[Post]:
 
     def collect_visible() -> tuple:
         """可視投稿から昨日分を収集し、(最古日, 最新日, 件数) を返す。"""
-        items = page.query_selector_all("article.is_all")
+        items = page.query_selector_all("article:has(.post_info)")
         first_date = last_date = None
         for item in items:
             try:
@@ -140,7 +141,7 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         """direction='down' or 'up'"""
         if direction == "down":
             js = """
-                const el = document.querySelector('article.is_all');
+                const el = document.querySelector('.post_info');
                 if (el) {
                     let p = el.parentElement;
                     while (p && p !== document.body) {
@@ -152,7 +153,7 @@ def _scrape_room(page, room_id: str) -> list[Post]:
             """
         else:
             js = """
-                const el = document.querySelector('article.is_all');
+                const el = document.querySelector('.post_info');
                 if (el) {
                     let p = el.parentElement;
                     while (p && p !== document.body) {
