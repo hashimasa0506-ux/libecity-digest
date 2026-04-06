@@ -6,7 +6,8 @@ import os
 import json
 from datetime import datetime, timedelta, timezone
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,18 +60,20 @@ def _posts_to_text(posts: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _call_gemini(model: genai.GenerativeModel, prompt: str) -> str:
-    response = model.generate_content(prompt)
+def _call_gemini(client: genai.Client, prompt: str) -> str:
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+        ),
+    )
     return response.text.strip()
 
 
 def summarize(scraped: dict[str, list[dict]]) -> dict:
     """スクレイピング結果を要約してJSONデータを返す。"""
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     now = datetime.now(JST)
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -87,7 +90,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
         if posts:
             posts_text = _posts_to_text(posts)
             prompt = SECTION_PROMPT_TEMPLATE.format(title=title, posts_text=posts_text)
-            summary = _call_gemini(model, prompt)
+            summary = _call_gemini(client, prompt)
         else:
             summary = "本日の投稿はありませんでした"
 
@@ -103,7 +106,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
     print("[summarizer] ハイライト生成中...")
     summaries_text = "\n\n".join(summaries_for_highlight)
     highlight_prompt = HIGHLIGHT_PROMPT_TEMPLATE.format(summaries_text=summaries_text)
-    highlight = _call_gemini(model, highlight_prompt)
+    highlight = _call_gemini(client, highlight_prompt)
 
     return {
         "date":         yesterday,
