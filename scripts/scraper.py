@@ -112,7 +112,10 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         for item in items:
             try:
                 info_el = item.query_selector(".post_info")
-                posted_at = _parse_time(info_el.inner_text().strip() if info_el else "")
+                raw_time = info_el.inner_text().strip() if info_el else ""
+                posted_at = _parse_time(raw_time)
+                # デバッグ: 全投稿の日時を出力
+                print(f"[scraper]   date: {repr(raw_time[:50])} → {posted_at}")
                 if posted_at is None:
                     continue
                 if first_date is None:
@@ -130,7 +133,8 @@ def _scrape_room(page, room_id: str) -> list[Post]:
                             posted_at=posted_at.isoformat(),
                             body=body,
                         )
-            except Exception:
+            except Exception as e:
+                print(f"[scraper]   エラー: {e}")
                 continue
         return first_date, last_date, len(items)
 
@@ -184,24 +188,27 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         do_scroll("down")
 
     # ── Phase 2 (UP) ────────────────────────────────────────────────
-    # 昨日の投稿の先頭（= 前日以前の投稿が見えるまで）を上スクロールで探す
-    prev_first = None
+    # 昨日の投稿の先頭を探すため上スクロール。
+    # 固定(ピン)投稿が先頭にある場合、first_dateが常に古い日付になるため
+    # 停止条件を last_date < yesterday（ウィンドウ全体が昨日以前）に変更。
+    prev_last = None
     no_prog = 0
     for i in range(60):
         fd, ld, cnt = collect_visible()
         print(f"[scraper] {room_id}: UP {i+1}回目 可視={cnt}件 "
               f"最古={fd} 最新={ld} 収集={len(seen_posts)}件")
-        if fd is None or fd < yesterday:
-            print(f"[scraper] {room_id}: 昨日より前の投稿に到達、終了")
+        # ウィンドウ全体が昨日以前になった = 昨日の投稿を全て通過した
+        if ld is None or ld < yesterday:
+            print(f"[scraper] {room_id}: ウィンドウが昨日以前に到達、終了")
             break
-        if fd == prev_first:
+        if ld == prev_last:
             no_prog += 1
             if no_prog >= 3:
                 print(f"[scraper] {room_id}: UP 進捗なし、打ち切り")
                 break
         else:
             no_prog = 0
-        prev_first = fd
+        prev_last = ld
         do_scroll("up")
 
     print(f"[scraper] {room_id}: 合計 {len(seen_posts)} 件取得")
