@@ -62,7 +62,7 @@ def _posts_to_text(posts: list[dict]) -> str:
     return "\n".join(lines)
 
 
-MODEL = "gemini-2.0-flash"   # 無料枠 1500 RPD（gemini-2.5-flash は 20 RPD）
+MODEL = "gemini-2.5-flash"   # 無料枠 20 RPD（1日1回の本番実行には十分）
 
 
 def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str:
