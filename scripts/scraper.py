@@ -103,28 +103,21 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     day_end   = datetime(yesterday.year, yesterday.month, yesterday.day,
                          23, 59, 59, tzinfo=JST)
 
-    # Virtual Scroll 対応：スクロールしながら昨日の投稿を収集する
-    # Virtual DOM はスクロール位置付近の投稿しか保持しないため、
-    # スクロールのたびに可視投稿を収集してdeduplicationする
     seen_posts: dict[tuple, Post] = {}
-    prev_last_date = None
-    no_progress_count = 0
 
-    for scroll_count in range(60):  # 最大60回（約2.5分）
+    def collect_visible() -> tuple:
+        """可視投稿から昨日分を収集し、(最古日, 最新日, 件数) を返す。"""
         items = page.query_selector_all("article.is_all")
-        current_last_date = None
-
+        first_date = last_date = None
         for item in items:
             try:
                 info_el = item.query_selector(".post_info")
-                raw_time = info_el.inner_text().strip() if info_el else ""
-                posted_at = _parse_time(raw_time)
+                posted_at = _parse_time(info_el.inner_text().strip() if info_el else "")
                 if posted_at is None:
                     continue
-
-                current_last_date = posted_at.date()
-
-                # 昨日の投稿なら収集（キーで重複排除）
+                if first_date is None:
+                    first_date = posted_at.date()
+                last_date = posted_at.date()
                 if day_start <= posted_at <= day_end:
                     author_el = item.query_selector(".post_user")
                     author = author_el.inner_text().strip() if author_el else "不明"
@@ -137,45 +130,81 @@ def _scrape_room(page, room_id: str) -> list[Post]:
                             posted_at=posted_at.isoformat(),
                             body=body,
                         )
-            except Exception as e:
-                print(f"[scraper]   エラー: {e}")
+            except Exception:
                 continue
+        return first_date, last_date, len(items)
 
-        print(f"[scraper] {room_id}: スクロール{scroll_count + 1}回目 "
-              f"可視={len(items)}件 最新日={current_last_date} 収集={len(seen_posts)}件")
-
-        # 昨日以降の日付に到達したら終了
-        if current_last_date and current_last_date >= yesterday:
-            print(f"[scraper] {room_id}: 昨日の日付に到達、スクロール終了")
-            break
-
-        # 日付が3回連続で進まなければチャット末尾と判断して終了
-        if current_last_date == prev_last_date:
-            no_progress_count += 1
-            if no_progress_count >= 3:
-                print(f"[scraper] {room_id}: 日付が進まないため終了")
-                break
-        else:
-            no_progress_count = 0
-        prev_last_date = current_last_date
-
-        # 下にスクロールして新しい投稿を読み込む
-        page.evaluate("""
-            const el = document.querySelector('article.is_all');
-            if (el) {
-                let parent = el.parentElement;
-                while (parent && parent !== document.body) {
-                    if (parent.scrollHeight > parent.clientHeight) {
-                        parent.scrollTop = parent.scrollHeight;
-                        break;
+    def do_scroll(direction: str) -> None:
+        """direction='down' or 'up'"""
+        if direction == "down":
+            js = """
+                const el = document.querySelector('article.is_all');
+                if (el) {
+                    let p = el.parentElement;
+                    while (p && p !== document.body) {
+                        if (p.scrollHeight > p.clientHeight) { p.scrollTop = p.scrollHeight; break; }
+                        p = p.parentElement;
                     }
-                    parent = parent.parentElement;
                 }
-            }
-            window.scrollTo(0, document.body.scrollHeight);
-        """)
+                window.scrollTo(0, document.body.scrollHeight);
+            """
+        else:
+            js = """
+                const el = document.querySelector('article.is_all');
+                if (el) {
+                    let p = el.parentElement;
+                    while (p && p !== document.body) {
+                        if (p.scrollHeight > p.clientHeight) { p.scrollTop = 0; break; }
+                        p = p.parentElement;
+                    }
+                }
+                window.scrollTo(0, 0);
+            """
+        page.evaluate(js)
         page.wait_for_timeout(2500)
 
+    # ── Phase 1 (DOWN) ──────────────────────────────────────────────
+    # 初期表示が昨日より古い場合に下スクロールで昨日まで到達する
+    prev_last = None
+    no_prog = 0
+    for i in range(60):
+        fd, ld, cnt = collect_visible()
+        print(f"[scraper] {room_id}: DOWN {i+1}回目 可視={cnt}件 "
+              f"最古={fd} 最新={ld} 収集={len(seen_posts)}件")
+        if ld is None or ld >= yesterday:
+            break
+        if ld == prev_last:
+            no_prog += 1
+            if no_prog >= 3:
+                print(f"[scraper] {room_id}: DOWN 進捗なし、打ち切り")
+                break
+        else:
+            no_prog = 0
+        prev_last = ld
+        do_scroll("down")
+
+    # ── Phase 2 (UP) ────────────────────────────────────────────────
+    # 昨日の投稿の先頭（= 前日以前の投稿が見えるまで）を上スクロールで探す
+    prev_first = None
+    no_prog = 0
+    for i in range(60):
+        fd, ld, cnt = collect_visible()
+        print(f"[scraper] {room_id}: UP {i+1}回目 可視={cnt}件 "
+              f"最古={fd} 最新={ld} 収集={len(seen_posts)}件")
+        if fd is None or fd < yesterday:
+            print(f"[scraper] {room_id}: 昨日より前の投稿に到達、終了")
+            break
+        if fd == prev_first:
+            no_prog += 1
+            if no_prog >= 3:
+                print(f"[scraper] {room_id}: UP 進捗なし、打ち切り")
+                break
+        else:
+            no_prog = 0
+        prev_first = fd
+        do_scroll("up")
+
+    print(f"[scraper] {room_id}: 合計 {len(seen_posts)} 件取得")
     return list(seen_posts.values())
 
 
