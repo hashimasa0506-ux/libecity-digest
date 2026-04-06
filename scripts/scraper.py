@@ -96,38 +96,6 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         print(f"[scraper] 警告: article.is_all が見つかりません ({room_id})")
         return []
 
-    # article.is_all の親スクロール要素を上にスクロールして全投稿を読み込む
-    # チャットは「古い投稿が上・新しい投稿が下」のため、上スクロールで過去投稿が追加される
-    for scroll_count in range(5):
-        prev_count = len(page.query_selector_all("article.is_all"))
-        page.evaluate("""
-            // article.is_all の最初の要素から親スクロール要素を探して上にスクロール
-            const el = document.querySelector('article.is_all');
-            if (el) {
-                let parent = el.parentElement;
-                while (parent && parent !== document.body) {
-                    if (parent.scrollHeight > parent.clientHeight) {
-                        parent.scrollTop = 0;
-                        break;
-                    }
-                    parent = parent.parentElement;
-                }
-            }
-            window.scrollTo(0, 0);
-        """)
-        page.wait_for_timeout(3000)
-        new_count = len(page.query_selector_all("article.is_all"))
-        print(f"[scraper] {room_id}: スクロール{scroll_count+1}回目 {prev_count}→{new_count}件")
-        if new_count == prev_count:
-            break  # 増えなければ終了
-
-    # 投稿要素を取得（article.is_all が1投稿に対応）
-    items = page.query_selector_all("article.is_all")
-    print(f"[scraper] {room_id}: {len(items)} 件の要素を検出")
-    if not items:
-        return []
-
-    # 「昨日の0時〜23時59分」の投稿を全て取得
     now = datetime.now(JST)
     yesterday = (now - timedelta(days=1)).date()
     day_start = datetime(yesterday.year, yesterday.month, yesterday.day,
@@ -135,43 +103,80 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     day_end   = datetime(yesterday.year, yesterday.month, yesterday.day,
                          23, 59, 59, tzinfo=JST)
 
-    posts: list[Post] = []
+    # Virtual Scroll 対応：スクロールしながら昨日の投稿を収集する
+    # Virtual DOM はスクロール位置付近の投稿しか保持しないため、
+    # スクロールのたびに可視投稿を収集してdeduplicationする
+    seen_posts: dict[tuple, Post] = {}
+    prev_last_date = None
+    no_progress_count = 0
 
-    for item in items:
-        try:
-            # 投稿者名：.post_user
-            author_el = item.query_selector(".post_user")
-            author = author_el.inner_text().strip() if author_el else "不明"
+    for scroll_count in range(60):  # 最大60回（約2.5分）
+        items = page.query_selector_all("article.is_all")
+        current_last_date = None
 
-            # 投稿時刻：.post_info 内の "YYYY/MM/DD HH:MM" 形式
-            info_el = item.query_selector(".post_info")
-            raw_time = info_el.inner_text().strip() if info_el else ""
-            posted_at = _parse_time(raw_time)
+        for item in items:
+            try:
+                info_el = item.query_selector(".post_info")
+                raw_time = info_el.inner_text().strip() if info_el else ""
+                posted_at = _parse_time(raw_time)
+                if posted_at is None:
+                    continue
 
-            # デバッグ：各投稿の日時を出力
-            print(f"[scraper]   raw_time={repr(raw_time[:40])} → posted_at={posted_at}")
+                current_last_date = posted_at.date()
 
-            if posted_at is None:
-                continue  # 日時不明の投稿はスキップ
+                # 昨日の投稿なら収集（キーで重複排除）
+                if day_start <= posted_at <= day_end:
+                    author_el = item.query_selector(".post_user")
+                    author = author_el.inner_text().strip() if author_el else "不明"
+                    body_el = item.query_selector(".post_text")
+                    body = body_el.inner_text().strip() if body_el else ""
+                    if body:
+                        key = (author, posted_at.isoformat())
+                        seen_posts[key] = Post(
+                            author=author,
+                            posted_at=posted_at.isoformat(),
+                            body=body,
+                        )
+            except Exception as e:
+                print(f"[scraper]   エラー: {e}")
+                continue
 
-            if not (day_start <= posted_at <= day_end):
-                continue  # 昨日以外はスキップ
+        print(f"[scraper] {room_id}: スクロール{scroll_count + 1}回目 "
+              f"可視={len(items)}件 最新日={current_last_date} 収集={len(seen_posts)}件")
 
-            # 本文：.post_text
-            body_el = item.query_selector(".post_text")
-            body = body_el.inner_text().strip() if body_el else ""
+        # 昨日以降の日付に到達したら終了
+        if current_last_date and current_last_date >= yesterday:
+            print(f"[scraper] {room_id}: 昨日の日付に到達、スクロール終了")
+            break
 
-            if body:
-                posts.append(Post(
-                    author=author,
-                    posted_at=posted_at.isoformat(),
-                    body=body,
-                ))
-        except Exception as e:
-            print(f"[scraper]   エラー: {e}")
-            continue
+        # 日付が3回連続で進まなければチャット末尾と判断して終了
+        if current_last_date == prev_last_date:
+            no_progress_count += 1
+            if no_progress_count >= 3:
+                print(f"[scraper] {room_id}: 日付が進まないため終了")
+                break
+        else:
+            no_progress_count = 0
+        prev_last_date = current_last_date
 
-    return posts
+        # 下にスクロールして新しい投稿を読み込む
+        page.evaluate("""
+            const el = document.querySelector('article.is_all');
+            if (el) {
+                let parent = el.parentElement;
+                while (parent && parent !== document.body) {
+                    if (parent.scrollHeight > parent.clientHeight) {
+                        parent.scrollTop = parent.scrollHeight;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
+            window.scrollTo(0, document.body.scrollHeight);
+        """)
+        page.wait_for_timeout(2500)
+
+    return list(seen_posts.values())
 
 
 def scrape_all(headless: bool = True) -> dict[str, list[dict]]:
