@@ -96,25 +96,30 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         print(f"[scraper] 警告: article.is_all が見つかりません ({room_id})")
         return []
 
-    # 追加の読み込みをトリガーするためスクロール操作
-    page.evaluate("""
-        // メインチャットエリアを下までスクロール
-        const containers = document.querySelectorAll(
-            '.chatLog, .chat_wrap, .room_content, .chatPage_wrap, .js_chatArea'
-        );
-        containers.forEach(c => { c.scrollTop = c.scrollHeight; });
-        window.scrollTo(0, document.body.scrollHeight);
-    """)
-    page.wait_for_timeout(3000)
-
-    # ローディングスピナーが消えるまで待機（最大10秒）
-    try:
-        page.wait_for_selector(".spinner-border", state="hidden", timeout=10000)
-    except PlaywrightTimeoutError:
-        pass
-
-    # 最終レンダリング待ち
-    page.wait_for_timeout(2000)
+    # article.is_all の親スクロール要素を上にスクロールして全投稿を読み込む
+    # チャットは「古い投稿が上・新しい投稿が下」のため、上スクロールで過去投稿が追加される
+    for scroll_count in range(5):
+        prev_count = len(page.query_selector_all("article.is_all"))
+        page.evaluate("""
+            // article.is_all の最初の要素から親スクロール要素を探して上にスクロール
+            const el = document.querySelector('article.is_all');
+            if (el) {
+                let parent = el.parentElement;
+                while (parent && parent !== document.body) {
+                    if (parent.scrollHeight > parent.clientHeight) {
+                        parent.scrollTop = 0;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
+            window.scrollTo(0, 0);
+        """)
+        page.wait_for_timeout(3000)
+        new_count = len(page.query_selector_all("article.is_all"))
+        print(f"[scraper] {room_id}: スクロール{scroll_count+1}回目 {prev_count}→{new_count}件")
+        if new_count == prev_count:
+            break  # 増えなければ終了
 
     # 投稿要素を取得（article.is_all が1投稿に対応）
     items = page.query_selector_all("article.is_all")
