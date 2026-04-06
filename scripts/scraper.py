@@ -122,7 +122,14 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     if not items:
         return []
 
-    cutoff = datetime.now(JST) - timedelta(hours=24)
+    # 「昨日の0時〜23時59分」の投稿を全て取得
+    now = datetime.now(JST)
+    yesterday = (now - timedelta(days=1)).date()
+    day_start = datetime(yesterday.year, yesterday.month, yesterday.day,
+                         0, 0, 0, tzinfo=JST)
+    day_end   = datetime(yesterday.year, yesterday.month, yesterday.day,
+                         23, 59, 59, tzinfo=JST)
+
     posts: list[Post] = []
 
     for item in items:
@@ -136,10 +143,10 @@ def _scrape_room(page, room_id: str) -> list[Post]:
             raw_time = info_el.inner_text().strip() if info_el else ""
             posted_at = _parse_time(raw_time)
             if posted_at is None:
-                posted_at = datetime.now(JST)
+                continue  # 日時不明の投稿はスキップ
 
-            if posted_at < cutoff:
-                continue
+            if not (day_start <= posted_at <= day_end):
+                continue  # 昨日以外はスキップ
 
             # 本文：.post_text
             body_el = item.query_selector(".post_text")

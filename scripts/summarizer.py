@@ -72,6 +72,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
         system_instruction=SYSTEM_PROMPT,
     )
     now = datetime.now(JST)
+    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
     sections = []
     summaries_for_highlight = []
@@ -105,7 +106,7 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
     highlight = _call_gemini(model, highlight_prompt)
 
     return {
-        "date":         now.strftime("%Y-%m-%d"),
+        "date":         yesterday,
         "generated_at": now.isoformat(),
         "highlight":    highlight,
         "sections":     sections,
