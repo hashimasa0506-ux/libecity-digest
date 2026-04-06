@@ -62,7 +62,7 @@ def _posts_to_text(posts: list[dict]) -> str:
     return "\n".join(lines)
 
 
-MODEL = "gemini-1.5-flash"   # 無料枠 1500 RPD（gemini-2.5-flash は 20 RPD）
+MODEL = "gemini-2.0-flash"   # 無料枠 1500 RPD（gemini-2.5-flash は 20 RPD）
 
 
 def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str:
@@ -77,7 +77,7 @@ def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str
             )
             return response.text.strip()
         except genai_errors.ClientError as e:
-            if e.status_code == 429 and attempt < max_retries - 1:
+            if "429" in str(e) and attempt < max_retries - 1:
                 wait = 60 * (attempt + 1)
                 print(f"[summarizer] 429レート制限、{wait}秒待機してリトライ ({attempt + 1}/{max_retries})")
                 time.sleep(wait)
