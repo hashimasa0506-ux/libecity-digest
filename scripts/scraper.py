@@ -114,8 +114,6 @@ def _scrape_room(page, room_id: str) -> list[Post]:
                 info_el = item.query_selector(".post_info")
                 raw_time = info_el.inner_text().strip() if info_el else ""
                 posted_at = _parse_time(raw_time)
-                # デバッグ: 全投稿の日時を出力
-                print(f"[scraper]   date: {repr(raw_time[:50])} → {posted_at}")
                 if posted_at is None:
                     continue
                 if first_date is None:
