@@ -13,21 +13,58 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className="bg-gray-50 text-gray-800 min-h-screen">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/" className="text-lg font-bold text-indigo-700 hover:text-indigo-900">
-              リベシティ ダイジェスト
+      <body className="min-h-screen" style={{ background: "var(--bg)", color: "#1a1a2e" }}>
+        {/* ── Header ── */}
+        <header className="sticky top-0 z-20 bg-white shadow-sm">
+          <div
+            className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between"
+          >
+            <a
+              href="/"
+              className="text-xl font-black tracking-tight"
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                background: "linear-gradient(90deg, var(--red), var(--orange), var(--yellow), var(--green), var(--blue), var(--purple))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              LibeCity Digest
             </a>
-            <nav className="flex gap-4 text-sm">
-              <a href="/" className="text-gray-600 hover:text-indigo-700">最新</a>
-              <a href="/history" className="text-gray-600 hover:text-indigo-700">履歴</a>
+            <nav className="flex gap-3 text-sm font-bold">
+              <a
+                href="/"
+                className="px-3 py-1 rounded-full transition-all hover:scale-105"
+                style={{ background: "var(--blue)", color: "#fff" }}
+              >
+                最新
+              </a>
+              <a
+                href="/history"
+                className="px-3 py-1 rounded-full transition-all hover:scale-105"
+                style={{ background: "var(--purple)", color: "#fff" }}
+              >
+                履歴
+              </a>
             </nav>
           </div>
+          {/* rainbow bottom bar */}
+          <div
+            style={{
+              height: 4,
+              background: "linear-gradient(90deg, var(--red), var(--orange), var(--yellow), var(--green), var(--blue), var(--purple))",
+            }}
+          />
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-6">{children}</main>
-        <footer className="text-center text-xs text-gray-400 py-6">
-          © {new Date().getFullYear()} LibeCity Digest
+
+        <main className="max-w-3xl mx-auto px-4 py-8">{children}</main>
+
+        <footer
+          className="text-center text-xs py-8 font-semibold"
+          style={{ color: "#aaa" }}
+        >
+          © {new Date().getFullYear()} LibeCity Digest ✨
         </footer>
       </body>
     </html>
