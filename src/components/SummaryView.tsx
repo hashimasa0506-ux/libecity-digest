@@ -36,7 +36,7 @@ export default function SummaryView({ summary }: { summary: Summary }) {
         <p className="text-xs font-semibold uppercase tracking-widest mb-2 opacity-80">
           Today&apos;s Highlight
         </p>
-        <p className="text-base leading-relaxed whitespace-pre-wrap">{summary.highlight}</p>
+        <p className="text-lg leading-relaxed whitespace-pre-wrap">{summary.highlight}</p>
         <p className="text-xs mt-3 opacity-60">
           生成日時: {new Date(summary.generated_at).toLocaleString("ja-JP")}
         </p>
@@ -56,7 +56,7 @@ export default function SummaryView({ summary }: { summary: Summary }) {
               {sec.post_count} 件
             </span>
           </div>
-          <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
             {sec.summary}
           </div>
         </div>
