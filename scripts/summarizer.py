@@ -65,7 +65,7 @@ def _posts_to_text(posts: list[dict]) -> str:
 MODEL = "gemini-2.5-flash"   # 無料枠 20 RPD（1日1回の本番実行には十分）
 
 
-def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str:
+def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 4) -> str:
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -76,10 +76,12 @@ def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 3) -> str
                 ),
             )
             return response.text.strip()
-        except genai_errors.ClientError as e:
-            if "429" in str(e) and attempt < max_retries - 1:
-                wait = 60 * (attempt + 1)
-                print(f"[summarizer] 429レート制限、{wait}秒待機してリトライ ({attempt + 1}/{max_retries})")
+        except (genai_errors.ClientError, genai_errors.ServerError) as e:
+            err_str = str(e)
+            if attempt < max_retries - 1:
+                # 429: レート制限 → 長めに待つ  503: 一時過負荷 → 短めに待つ
+                wait = 30 if "503" in err_str else 60 * (attempt + 1)
+                print(f"[summarizer] APIエラー({err_str[:30]})、{wait}秒待機してリトライ ({attempt + 1}/{max_retries})")
                 time.sleep(wait)
             else:
                 raise
