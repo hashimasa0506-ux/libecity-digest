@@ -18,6 +18,16 @@ function formatDate(dateStr: string): string {
   return `${y}年${Number(m)}月${Number(d)}日`;
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")   // **bold**
+    .replace(/\*(.+?)\*/g, "$1")        // *italic*
+    .replace(/`(.+?)`/g, "$1")          // `code`
+    .replace(/^#{1,6}\s+/gm, "")        // ## heading
+    .replace(/^\s*[-*]\s+/gm, "・")     // - list → ・
+    .trim();
+}
+
 export default function SummaryView({ summary }: { summary: Summary }) {
   return (
     <div className="space-y-6">
@@ -36,7 +46,7 @@ export default function SummaryView({ summary }: { summary: Summary }) {
         <p className="text-xs font-semibold uppercase tracking-widest mb-2 opacity-80">
           Today&apos;s Highlight
         </p>
-        <p className="text-lg leading-relaxed whitespace-pre-wrap">{summary.highlight}</p>
+        <p className="text-lg leading-relaxed whitespace-pre-wrap">{stripMarkdown(summary.highlight)}</p>
         <p className="text-xs mt-3 opacity-60">
           生成日時: {new Date(summary.generated_at).toLocaleString("ja-JP")}
         </p>
@@ -57,7 +67,7 @@ export default function SummaryView({ summary }: { summary: Summary }) {
             </span>
           </div>
           <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {sec.summary}
+            {stripMarkdown(sec.summary)}
           </div>
         </div>
       ))}
