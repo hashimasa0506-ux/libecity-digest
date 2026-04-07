@@ -79,8 +79,8 @@ def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 4) -> str
         except (genai_errors.ClientError, genai_errors.ServerError) as e:
             err_str = str(e)
             if attempt < max_retries - 1:
-                # 429: レート制限 → 長めに待つ  503: 一時過負荷 → 短めに待つ
-                wait = 30 if "503" in err_str else 60 * (attempt + 1)
+                # 指数バックオフ: 60, 120, 240秒
+                wait = 60 * (2 ** attempt)
                 print(f"[summarizer] APIエラー({err_str[:30]})、{wait}秒待機してリトライ ({attempt + 1}/{max_retries})")
                 time.sleep(wait)
             else:
@@ -119,11 +119,15 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
         })
         summaries_for_highlight.append(f"【{title}】\n{summary}")
 
-    # ハイライト生成
+    # ハイライト生成（失敗してもセクション要約は保存する）
     print("[summarizer] ハイライト生成中...")
     summaries_text = "\n\n".join(summaries_for_highlight)
     highlight_prompt = HIGHLIGHT_PROMPT_TEMPLATE.format(summaries_text=summaries_text)
-    highlight = _call_gemini(client, highlight_prompt)
+    try:
+        highlight = _call_gemini(client, highlight_prompt)
+    except Exception as e:
+        print(f"[summarizer] ハイライト生成失敗（スキップ）: {e}")
+        highlight = "（ハイライトの生成に失敗しました）"
 
     return {
         "date":         yesterday,
