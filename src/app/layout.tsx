@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "リベシティ日次ダイジェスト",
   description: "リベシティ チャットルームの日次要約",
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
