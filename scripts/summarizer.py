@@ -79,6 +79,10 @@ def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 4) -> str
             return response.text.strip()
         except (genai_errors.ClientError, genai_errors.ServerError) as e:
             err_str = str(e)
+            # 日次クォータ上限超過はリトライしても無意味なので即座に諦める
+            if "GenerateRequestsPerDayPerProjectPerModel" in err_str:
+                print(f"[summarizer] 日次クォータ上限超過のため即終了（リトライ不可）: {err_str[:60]}")
+                raise
             if attempt < max_retries - 1:
                 # 指数バックオフ: 60, 120, 240秒
                 wait = 60 * (2 ** attempt)
