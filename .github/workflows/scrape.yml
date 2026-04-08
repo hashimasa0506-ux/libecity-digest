@@ -45,4 +45,5 @@ jobs:
           # 変更がある場合のみコミット
           git diff --cached --quiet || \
             git commit -m "chore: add daily summary $(date +'%Y-%m-%d' -d '+9 hours')"
+          git pull --rebase origin main
           git push
