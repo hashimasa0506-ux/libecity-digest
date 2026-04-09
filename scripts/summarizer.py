@@ -31,7 +31,6 @@ SYSTEM_PROMPT = """\
 
 SECTION_PROMPT_TEMPLATE = """\
 以下は「{title}」チャットルームの直近24時間の投稿です。
-投稿がない場合は「本日の投稿はありませんでした」とだけ返してください。
 
 投稿内容:
 {posts_text}
