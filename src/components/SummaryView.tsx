@@ -106,11 +106,15 @@ export default function SummaryView({ summary }: { summary: Summary }) {
             />
 
             {/* summary text */}
-            <div
-              className="text-base font-semibold leading-loose whitespace-pre-wrap"
-              style={{ color: "#333" }}
-            >
-              {stripMarkdown(sec.summary)}
+            <div className="space-y-1">
+              {stripMarkdown(sec.summary)
+                .split("\n")
+                .filter((line) => line.trim() !== "")
+                .map((line, j) => (
+                  <p key={j} className="text-base font-semibold leading-relaxed" style={{ color: "#333" }}>
+                    {line}
+                  </p>
+                ))}
             </div>
           </div>
         );
