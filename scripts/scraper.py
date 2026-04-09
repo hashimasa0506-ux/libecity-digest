@@ -192,6 +192,8 @@ def _scrape_room(page, room_id: str) -> list[Post]:
     # 停止条件を last_date < yesterday（ウィンドウ全体が昨日以前）に変更。
     prev_last = None
     no_prog = 0
+    prev_collected = len(seen_posts)  # 昨日の収集件数の変化を追跡
+    no_new_yesterday = 0
     for i in range(60):
         fd, ld, cnt = collect_visible()
         print(f"[scraper] {room_id}: UP {i+1}回目 可視={cnt}件 "
@@ -200,6 +202,15 @@ def _scrape_room(page, room_id: str) -> list[Post]:
         if ld is None or ld < yesterday:
             print(f"[scraper] {room_id}: ウィンドウが昨日以前に到達、終了")
             break
+        # 昨日の新規投稿が3回連続で増えなければ終了
+        if len(seen_posts) == prev_collected:
+            no_new_yesterday += 1
+            if no_new_yesterday >= 3:
+                print(f"[scraper] {room_id}: 昨日の新規投稿なし3回連続、終了")
+                break
+        else:
+            no_new_yesterday = 0
+        prev_collected = len(seen_posts)
         if ld == prev_last:
             no_prog += 1
             if no_prog >= 3:
