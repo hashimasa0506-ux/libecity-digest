@@ -74,6 +74,7 @@ def _call_gemini(client: genai.Client, prompt: str, max_retries: int = 4) -> str
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
             return response.text.strip()
