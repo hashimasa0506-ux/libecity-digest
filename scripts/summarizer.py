@@ -40,16 +40,7 @@ SECTION_PROMPT_TEMPLATE = """\
 - 各項目は20〜40文字程度の短い1文のみ
 - 体言止めや「〜を発表」「〜が開催」のような見出し表現を使う
 - 投稿者名は含めない
-"""
-
-HIGHLIGHT_PROMPT_TEMPLATE = """\
-以下は本日のリベシティ各チャットルームの要約です。
-
-{summaries_text}
-
-この内容全体を踏まえ、今日のリベシティで最も重要なトピックや学びを
-3行以内（150文字以内）でハイライトとしてまとめてください。
-読者が一番最初に目にする文章なので、簡潔でインパクトのある表現にしてください。
+- 前置き文・タイトル行・説明文は一切不要。箇条書きのみ返すこと
 """
 
 
@@ -100,7 +91,6 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
     sections = []
-    summaries_for_highlight = []
 
     for room in ROOMS:
         rid   = room["room_id"]
@@ -122,22 +112,10 @@ def summarize(scraped: dict[str, list[dict]]) -> dict:
             "summary":    summary,
             "post_count": len(posts),
         })
-        summaries_for_highlight.append(f"【{title}】\n{summary}")
-
-    # ハイライト生成（失敗してもセクション要約は保存する）
-    print("[summarizer] ハイライト生成中...")
-    summaries_text = "\n\n".join(summaries_for_highlight)
-    highlight_prompt = HIGHLIGHT_PROMPT_TEMPLATE.format(summaries_text=summaries_text)
-    try:
-        highlight = _call_gemini(client, highlight_prompt)
-    except Exception as e:
-        print(f"[summarizer] ハイライト生成失敗（スキップ）: {e}")
-        highlight = "（ハイライトの生成に失敗しました）"
 
     return {
         "date":         yesterday,
         "generated_at": now.isoformat(),
-        "highlight":    highlight,
         "sections":     sections,
     }
 

@@ -40,42 +40,13 @@ export default function SummaryView({ summary }: { summary: Summary }) {
         </Link>
       </div>
 
-      {/* ── Highlight banner ───────────────────────── */}
-      <div
-        className="rounded-3xl p-6 shadow-lg animate-fade-in delay-100 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #ff6b6b 0%, #c77dff 50%, #4d96ff 100%)",
-          color: "#fff",
-        }}
-      >
-        {/* decorative circles */}
-        <div
-          className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-20"
-          style={{ background: "#fff" }}
-        />
-        <div
-          className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full opacity-15"
-          style={{ background: "#ffd93d" }}
-        />
-
-        <p className="text-xs font-black uppercase tracking-widest mb-3 opacity-80">
-          ✨ Today&apos;s Highlight
-        </p>
-        <p className="text-lg font-bold leading-relaxed whitespace-pre-wrap relative z-10">
-          {stripMarkdown(summary.highlight)}
-        </p>
-        <p className="text-xs mt-4 opacity-60">
-          生成日時: {new Date(summary.generated_at).toLocaleString("ja-JP")}
-        </p>
-      </div>
-
       {/* ── Section cards ──────────────────────────── */}
       {summary.sections.map((sec, i) => {
         const accent = ROOM_ACCENT[sec.room_id] ?? { color: "var(--purple)", emoji: "💬" };
         return (
           <div
             key={sec.room_id}
-            className={`card hover-pop animate-fade-in delay-${(i + 2) * 100}`}
+            className={`card hover-pop animate-fade-in delay-${(i + 1) * 100}`}
             style={{ borderTop: `5px solid ${accent.color}` }}
           >
             {/* card header */}
