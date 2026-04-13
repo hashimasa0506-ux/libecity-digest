@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default function RootLayout({
           <div
             className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between"
           >
-            <a
+            <Link
               href="/"
               className="text-xl font-black tracking-tight"
               style={{
@@ -34,22 +35,22 @@ export default function RootLayout({
               }}
             >
               LibeCity Digest
-            </a>
+            </Link>
             <nav className="flex gap-3 text-sm font-bold">
-              <a
+              <Link
                 href="/"
                 className="px-3 py-1 rounded-full transition-all hover:scale-105"
                 style={{ background: "var(--blue)", color: "#fff" }}
               >
                 最新
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/history"
                 className="px-3 py-1 rounded-full transition-all hover:scale-105"
                 style={{ background: "var(--purple)", color: "#fff" }}
               >
                 履歴
-              </a>
+              </Link>
             </nav>
           </div>
           {/* rainbow bottom bar */}
