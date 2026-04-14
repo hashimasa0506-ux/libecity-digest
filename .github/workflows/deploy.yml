@@ -1,8 +1,15 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Daily Scrape & Summarize が完了したら自動起動
+  # （GITHUB_TOKEN の push は push イベントをトリガーしないため）
+  workflow_run:
+    workflows: ["Daily Scrape & Summarize"]
+    types: [completed]
+    branches: [main]
+  # 自分のコード変更時（ローカルからの push）も自動デプロイ
   push:
-    branches: [main]   # main に push されるたびに自動デプロイ
+    branches: [main]
   workflow_dispatch:    # 手動実行も可能
 
 permissions:
