@@ -1,0 +1,24 @@
+{
+  "date": "2026-06-24",
+  "generated_at": "2026-06-25T05:49:04.598259+09:00",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "・学長、25日から朝ライブ休止\n・28日まで海外滞在中\n・メンバーは宿題リストを継続\n・自習期間が開始",
+      "post_count": 1
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "・リベシティの「使い方ライブ」毎日開催\n・機能の疑問や不安を公式サポーターが解決\n・YouTubeライブで画面共有しながら回答\n・初心者から経験者まで参加を推奨",
+      "post_count": 1
+    }
+  ]
+}
