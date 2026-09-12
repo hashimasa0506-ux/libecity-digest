@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-12",
+  "generated_at": "2026-09-13T06:14:11.926098+09:00",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "・Claude×新品せどり合宿が9月19日にオンライン開催\n・9月19日開催の合宿でClaudeを活用した新品せどりを実践\n・リベシティの機能アップデートで通知設定やAI司書機能を追加\n・スキルマーケットで人気カテゴリからサービス検索が可能に",
+      "post_count": 2
+    }
+  ]
+}
