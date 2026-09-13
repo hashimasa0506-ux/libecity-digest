@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-13",
+  "generated_at": "2026-09-14T06:15:52.218269+09:00",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "・本日、電車の運転士による特別授業を開催\n・9月27日、歯医者による特別授業を開催\n・こどもスクールの特別授業はYouTube Liveで視聴可能",
+      "post_count": 2
+    }
+  ]
+}
