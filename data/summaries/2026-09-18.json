@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-18",
+  "generated_at": "2026-09-19T06:26:38.376259+09:00",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "・宿題リストの図解表示に不具合発生中\n・外部サービスの緊急メンテが原因\n・現在も復旧に向け対応中\n・ご不便おかけするも復旧まで待機を要請",
+      "post_count": 1
+    }
+  ]
+}
