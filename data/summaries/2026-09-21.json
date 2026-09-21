@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-21",
+  "generated_at": "2026-09-22T07:27:51.386110+09:00",
+  "sections": [
+    {
+      "title": "学長マガジン",
+      "room_id": "President-Tweet",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "学長ライブまとめ",
+      "room_id": "LIVE-Text",
+      "summary": "本日の投稿はありませんでした",
+      "post_count": 0
+    },
+    {
+      "title": "運営からのお知らせ",
+      "room_id": "Liberal-City",
+      "summary": "・公認オフ会対象イベント発表\n・宿題リスト学ぶオフ会支援\n・富士市で公認オフ会開催\n・公認オフ会は引き続き募集",
+      "post_count": 1
+    }
+  ]
+}
